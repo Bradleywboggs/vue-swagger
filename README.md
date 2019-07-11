@@ -32,7 +32,6 @@ TODOS:
 * Set up the project to use Security schemes in OpenApi api definitions to enable 'Try it Now' for auth-required api's
 * Vuex is a dependency, so we need to find a way to generalize or easily customize the `store.js`
   file to meet the needs of anyone's application
-* Complete filling in local query params per JSON API spec, and fill in the `store.js` file accordingly
 * Create a robust sample yaml that makes vue-swagger's opinions very clear
 * Set up vue-swagger specific error handling in the code to clearly and kindly guide developers to comply with vue-swagger's
 aforementioned opinions.
