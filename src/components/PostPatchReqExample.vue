@@ -1,3 +1,4 @@
+
 <template>
   <v-flex sm6 class="mr-2">
     <v-toolbar flat height="40px" color="grey darken-3">
@@ -7,6 +8,7 @@
     <v-card>
       <v-card-text>
         <json-viewer
+                v-if="requestBodyExample"
                 :value="processedRequestBodyExample"
                 :expand-depth=5
                 theme="json-viewer"

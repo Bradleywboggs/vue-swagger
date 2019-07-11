@@ -12,7 +12,7 @@
     </v-flex>
     <v-flex lg12>
       <v-layout>
-        <v-flex xs8 sm6 lg2 mr-4>
+        <v-flex xs8 sm6 lg2 mr-4 mt-2>
           <v-select v-model="version" :items="versions" solo ></v-select>
         </v-flex>
 
@@ -129,7 +129,10 @@
                 .filter(([k,v]) => v.some(pathObject => pathObject.servers) ?
                         v.some(pathObject => pathObject.servers[0].url.includes(this.version)) : this.tags);
         // Reduce the filtered array of key/value entries into the new versionedTags object
-        return versionedTagEntries.reduce((carryAccumulation, [key,value]) => ({...carryAccumulation, [key]: value }), {});
+        return  versionedTagEntries === this.tags ?
+                this.tags :
+                versionedTagEntries.reduce(
+                        (accum, [key,value]) => ({...accum, [key]: value }), {});
       },
 
     },
@@ -304,8 +307,8 @@
           entry.tags = entry.tags || []
           if (!entry.tags.length) {
             entry.tags.push('No category')
-            console.log(`VUESWAG WARNING!! 'Path: ${entry.path}, Method: ${entry.method}' doesn't have a tag associated with it  in your api definition (yaml file),
-            So VueSwag will not be able to reach its full potential for you.`)
+            console.log(`VUESWAG WARNING!! 'Path: ${entry.path}, Method: ${entry.method}' doesn't have a tag associated with it in your api definition (yaml file),
+            so VueSwag will not be able to reach its full potential for you.`)
           }
           entry.tags.forEach(tag => {
             tags[tag] = tags[tag] || []

@@ -8,166 +8,45 @@ const CLEAR_ALL = 'CLEAR_ALL'
 const SET_IDS = 'SET_IDS'
 const SET_PATH_VAR = 'SET_PATH_VAR'
 const SET_QUERY_PARAMS = 'SET_QUERY_PARAMS'
+const SET_TAGS = 'SET_TAGS'
+
 
 
 
 const state = {
   endpointData : {
     pets: {
-      pathVars: [],
       idPathVar: '',
-      queryParams: {
-        include: [],
-        'page[number]':[],
-        'page[size]':[],
-        limit: [],
-        sort: [],
-        sort_on: [],
-        filter: []
-      }
-    },
-    branches: {
-      pathVars: [],
-      idPathVar: '',
-      queryParams: {
-        include: [],
-        'page[number]': [],
-        'page[size]': [],
-        limit: [],
-        sort: [],
-        sort_on: [],
-        filter: []
-      }
-    },
-    'catalog-items': {
-      pathVars: [],
-      idPathVar: '',
-      queryParams: {
-        include: [],
-        'page[number]':[],
-        'page[size]':[],
-        limit: [],
-        sort: [],
-        sort_on: [],
-        filter: []
-      }
-    },
-    'equipment-items': {
-      pathVars: [],
-      idPathVar: '',
-      queryParams: {
-        include: [],
-        'page[number]':[],
-        'page[size]':[],
-        limit: [],
-        sort: [],
-        sort_on: [],
-        filter: []
-      }
-    },
-    jobsites: {
-      pathVars: [],
-      idPathVar: '',
-      queryParams: {
-        include: [],
-        'page[number]':[],
-        'page[size]':[],
-        limit: [],
-        sort: [],
-        sort_on: [],
-        filter: []
-      }
-    },
-    notifications: {
-      pathVars: [],
-      idPathVar: '',
-      queryParams: {
-        include: [],
-        'page[number]':[],
-        'page[size]':[],
-        limit: [],
-        sort: [],
-        sort_on: [],
-        filter: []
-      }
-    },
-    persons: {
-      pathVars: [],
-      idPathVar: '',
-      queryParams: {
-        include: [],
-        'page[number]':[],
-        'page[size]':[],
-        limit: [],
-        sort: [],
-        sort_on: [],
-        filter: []
-      }
-    },
-    rentals: {
-      pathVars: [],
-      idPathVar: '',
-      queryParams: {
-        include: [],
-        'page[number]':[],
-        'page[size]':[],
-        limit: [],
-        sort: [],
-        sort_on: [],
-        filter: []
-      }
-    },
-    reservations: {
-      pathVars: [],
-      idPathVar: '',
-      queryParams: {
-        include: [],
-        'page[number]':[],
-        'page[size]':[],
-        limit: [],
-        sort: [],
-        sort_on: [],
-        filter: []
-      }
-    },
-    transactions: {
-      pathVars: [],
-      idPathVar: '',
-      queryParams: {
-        include: [],
-        'page[number]':[],
-        'page[size]':[],
-        limit: [],
-        sort: [],
-        sort_on: [],
-        filter: []
-      }
-    },
+      queryParams: {}
+    }
   }
-
 };
+
 
 const getters = {
   getIndexParams:(state) => (tag) => {
+    console.log(tag)
     return Object.entries(state.endpointData[tag].queryParams).
         filter(([k, v]) => k !== 'include').
         reduce((accum, [k, v]) => ({...accum, [k]: v}), {})
   },
-  getPathVarByTag: (state) => (localState) => {
+  getPathVarByTag: (state, getters) => (localState) => {
     const tag = getTag(state, localState);
-    return state.endpointData[tag].idPathVar
+      return tag !== 'noTag' ?
+          state.endpointData[tag].idPathVar :
+          ''
+
   },
-  getPathVarsByTag: (state) => (localState) => {
+  getPathVarsByTag: (state, getters) => (localState) => {
     const tag = getTag(state, localState)
     return state.endpointData[tag].pathVars
   },
   getQueryParamsByTag: (state, getters) => (localState) => {
-    const tag = getTag(state, localState);
-    return isShowOrSelfMethod(localState) ?
-        getters.getShowOrSelfParams(tag) :
-        getters.getIndexParams(tag)
-
-  },
+      const tag = getTag(state, localState);
+      return isShowOrSelfMethod(localState) ?
+              getters.getShowOrSelfParams(tag) :
+              getters.getIndexParams(tag)
+      },
   getQueryStringByTag: (state, getters) => (localState) => {
     const queryParams = getters.getQueryParamsByTag(localState)
     const filteredParamsArrayByTag = Object.entries(queryParams)
@@ -181,10 +60,14 @@ const getters = {
     return queryStringArray.join('&')
   },
   getShowOrSelfParams: (state) => (tag) => {
-    return Object.entries(state.endpointData[tag].queryParams).
-        filter(([k, v]) => k === 'include').
-        reduce((accum, [k, v]) => ({...accum, [k]: v}), {})
-  }
+    return Object.entries(state.endpointData[tag].queryParams).filter(
+        ([k, v]) => k === 'include').reduce(
+            (accum, [k, v]) => ({...accum, [k]: v}), {})
+  },
+  getTag: (state) => (localState) =>
+     localState.entry !== undefined && Object.keys(state.endpointData) !== undefined ?
+      Object.keys(state.endpointData).
+          filter(k => localState.entry.tags.includes(k))[0] :  'noTag'
 }
 
 const actions = {
@@ -203,18 +86,23 @@ const actions = {
   setPathVar({ commit }, localState) {
     commit('SET_PATH_VAR', localState)
   },
-  setQueryParams({ commit }, localState){
+  setQueryParams({ commit }, localState) {
     commit('SET_QUERY_PARAMS', localState)
+  },
+  setTags({ commit }, localState) {
+    commit('SET_TAGS', localState)
   }
 };
 
 const mutations = {
   [CLEAR_ALL](state, emptyLocalState){
     const tag = getTag(state, emptyLocalState)
-    if (isShowOrSelfMethod(emptyLocalState)) {
-      state.endpointData[tag].idPathVar = emptyLocalState.idPathVar
-    }
-    state.endpointData[tag].queryParams = emptyLocalState.queryParams
+    // if (isShowOrSelfMethod(emptyLocalState)) {
+      state.endpointData[tag].idPathVar = ''
+    // }
+    state.endpointData[tag].queryParams =
+        Object.entries(state.endpointData[tag].queryParams).reduce(
+            (accum, [paramKey, paramVal]) => ({...accum, [paramKey]:''}), {})
   },
   [SET_IDS](state, localState) {
     const tag = getTag(state, localState)
@@ -222,12 +110,26 @@ const mutations = {
   },
   [SET_PATH_VAR](state, localState) {
     const tag = getTag(state, localState)
+    console.log(tag)
     state.endpointData[tag].idPathVar = localState.idPathVar
+    console.log(localState.idPathVar)
+    console.log(state.endpointData[tag])
   },
-  [SET_QUERY_PARAMS](state, localState){
+  [SET_QUERY_PARAMS](state, localState) {
     const tag = getTag(state, localState)
-    state.endpointData[tag].queryParams = localState.queryParams
+    console.log(tag)
+    state = {
+      ...state.endpointData,
+      [tag]: {
+        ...state.endpointData[tag]
+        .queryParams = localState.queryParams
+      }
+    }
   },
+  [SET_TAGS] (state, localState) {
+    const tag = localState.entry.tags[0]
+    state.endpointData[tag] = {idPathVar: '', queryParams: {}}
+  }
 };
 
 export default new Vuex.Store({
@@ -245,7 +147,6 @@ const isShowMethod = (localState) =>
 
 const isShowOrSelfMethod = (localState) =>
     isShowMethod(localState) || localState.entry.path === '/me'
-
 
 
 

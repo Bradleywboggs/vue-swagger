@@ -1,4 +1,4 @@
-<template>
+<template xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
   <!--TODO:Improve conditional styling technique: Huge If/Else blocks are ugly-->
   <v-flex v-if="entry.method !== 'delete'"sm6 class="mr-2">
     <v-toolbar flat height="40px" color="grey darken-3">
@@ -17,38 +17,55 @@
         <td>{{ parameters.item.schema.type }} {{ displayEnum(parameters.item.schema.enum) }}</td>
         <td>{{ parameters.item.description }}</td>
         <td>
-          <div v-if="isShowOrSelfMethod">
+          <div v-if="hasExampleParam(parameters)">
+            <div v-if="isIdParam(parameters)">
             <v-select
-              v-if="isIdParam(parameters)"
-              v-model="localIdPathVar"
-             :items="pathVars"
-             :no-data-text="noDataMsg"
-             :placeholder="pathVarPlaceholder"
-             @change="setPathVar"
-              clearable
-            >
-            </v-select>
-            <v-select
-              v-if="isIncludeParam(parameters)"
-              v-model="localQueryParams[parameters.item.name]"
-              :items="parameters.item.example.split(',')"
-              :placeholder="parameters.item.name"
-              :multiple="supportsMultiple"
-              @change="setParams"
-              clearable
+                    v-model="localIdPathVar"
+                    :type="getType(parameters)"
+                    min="0"
+                    :items="parameters.item.example.split(',')"
+                    :placeholder="pathVarPlaceholder"
+                    @change="setPathVar"
+                    :rules="[rules.required]"
             ></v-select>
+            </div>
+            <div v-else>
+            <v-select
+                    v-model="displayedQueryParams[parameters.item.name]"
+                    :items="parameters.item.example.split(',')"
+                    :placeholder="parameters.item.name"
+                    :multiple="isArrayParam(parameters)"
+                    @change="setParams"
+                    clearable
+            ></v-select>
+            </div>
           </div>
           <div v-else>
+            <div v-if="isIdParam(parameters)">
+            <v-text-field
+                    v-if="isIdParam(parameters)"
+                    v-model="localIdPathVar"
+                    :type="getType(parameters)"
+                    min="0"
+                    :placeholder="pathVarPlaceholder"
+                    @input="setPathVar"
+                    :rules="[rules.required]"
+                    clearable
+            ></v-text-field>
+            </div>
+            <div v-else>
               <v-text-field
-                      type="number"
-                      v-model="rawParams[parameters.item.name]"
-                      :rules="[rules.greaterThanZero]"
+                      :type="getType(parameters)"
+                      min="0"
+                      v-model="displayedQueryParams[parameters.item.name]"
                       :placeholder="parameters.item.name"
                       @input="setParams"
                       clearable
               >
               </v-text-field>
+            </div>
           </div>
+
         </td>
       </template>
       <template v-slot:no-data>
@@ -77,7 +94,7 @@
 </template>
 
 <script>
-  import { mapState, mapGetters, mapActions } from 'vuex'
+  import { mapGetters } from 'vuex'
 
   const pluralize = require('pluralize')
 
@@ -100,24 +117,11 @@
           {text: 'Value(s)', value: 'example'}
         ],
         localIdPathVar: '',
-        localQueryParams: {
-          include: [],
-          'page[number]': '',
-          'page[size]' : '',
-          limit: [],
-          sort: [],
-          sort_on: [],
-          filter: []
-        },
-        rawParams : {
-          'page[number]' : '',
-          'page[size]' : '',
-        },
+        displayedQueryParams : {},
         rules: {
-          greaterThanZero: value => value >= 0 || 'Value must be greater than 0'
-        },
-        supportsMultiple: true,
+          required: value => value !== '' || 'This field is required'
         }
+      }
     },
 
     computed: {
@@ -140,20 +144,17 @@
       idPathVar() {
         return this.getPathVarByTag(this.localState)
       },
-      isShowMethod() {
-        return this.entry.method === 'get' && this.entry.path.indexOf('{id}') !== -1
-      },
-      isShowOrSelfMethod(){
-        return this.isShowMethod || this.entry.path  === '/me'
-      },
-      jwt() {
-        return window.jwt
+      localQueryParams() {
+          return Object.entries(this.displayedQueryParams).reduce(
+                  (accum, [paramKey, paramVal]) => paramVal === null ?
+                          ({...accum, [paramKey]: ''}) :
+                          ({...accum, [paramKey]: paramVal}), {})
       },
       localState() {
         return {
           config: {
             headers: {
-              'Authorization': 'Bearer ' + this.jwt
+              // 'Authorization': 'Bearer ' + this.jwt
             }
           },
           requestUrl: this.requestUrl.replace(/{id}/, ''),
@@ -162,17 +163,6 @@
           queryParams: this.localQueryParams,
           idPathVar: this.localIdPathVar
         }
-      },
-      noDataMsg(){
-        return this.userSelected ?
-                `This user doesn't have any associated data` :
-                `Please select a user`
-      },
-      pageNumber() {
-        return parseFloat(this.rawParams['page[number]']) > 0 ? this.rawParams['page[number]'] : ''
-      },
-      pageSize() {
-        return parseFloat(this.rawParams['page[size]']) > 0 ? this.rawParams['page[size]'] : ''
       },
       parameters() {
         return this.entry.parameters
@@ -193,32 +183,23 @@
         return `${this.baseUrl}${this.version}${this.entry.path}`
       }
     },
-    created() {
-      if (this.userSelected) {
-        if (this.isShowMethod) {
-          return this.$store.dispatch('setIds', this.localState)
-        }
-      }
-    },
+     created() {
+      // return this.$store.dispatch('setTags', this.localState)
+      // if (this.isShowMethod) {
+      //     this.$store.dispatch('setIds', this.localState)
+      //   }
+      },
     watch: {
       idPathVar() {
-        this.localIdPathVar = this.idPathVar
+        this.localIdPathVar = !this.idPathVar ? '' : this.localIdPathVar
         },
-      pageNumber() {
-        this.localQueryParams['page[number]'] = this.pageNumber
-      },
-      pageSize() {
-        this.localQueryParams['page[size]'] = this.pageSize
-      },
       queryParams : {
         deep: true,
         handler() {
-          if (this.isShowOrSelfMethod) {
-            this.localQueryParams.include = this.queryParams.include
-          }
-          else {
-            this.rawParams['page[number]'] = this.queryParams['page[number]']
-            this.rawParams['page[size]'] = this.queryParams['page[size]']
+          if (this.queryParams !== undefined) {
+            if (Object.values(this.queryParams).every(param => !param)) {
+              Object.entries(this.displayedQueryParams).forEach(([k, v]) => this.displayedQueryParams[k] = '')
+            }
           }
         }
       }
@@ -235,14 +216,30 @@
       isIdParam(parameters) {
         return parameters.item.name === 'id'
       },
-      isIncludeParam(parameters) {
-        return parameters.item.name === 'include'
+      isArrayParam(parameters) {
+        return parameters.item.schema.type === 'array'
       },
+      hasExampleParam(parameters) {
+        return !! parameters.item.example
+      },
+      getType(parameters) {
+        return this.isArrayParam(parameters) ?
+                parameters.item.schema.items.type === 'string' ?
+                        'text' :
+                        'number'
+                                             :
+                parameters.item.schema.type === 'string' ?
+                        'text' :
+                        'number'
+      }
+      ,
       setPathVar() {
-        return this.$store.dispatch('setPathVar', this.localState)
+          return this.$store.dispatch('setPathVar', this.localState)
       },
       setParams() {
-        return this.$store.dispatch('setQueryParams', this.localState)
+        if (this.queryParams !== undefined) {
+          return this.$store.dispatch('setQueryParams', this.localState)
+        }
       },
     }
   }

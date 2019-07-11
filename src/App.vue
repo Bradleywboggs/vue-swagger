@@ -3,9 +3,8 @@
     <v-content>
       <v-container fluid fill-height>
         <vue-swag
-        swagger-yaml="http://10.0.1.84:8082/openapi2.yaml"
+        swagger-yaml="http://10.240.89.27:8081/openapi2.yaml"
         ></vue-swag>
-
       </v-container>
     </v-content>
   </v-app>

@@ -54,7 +54,7 @@
 <script>
 
   import axios from 'axios'
-  import { mapState, mapActions, mapGetters } from 'vuex'
+  import { mapGetters } from 'vuex'
 
   export default {
     name: "get-request-example",
@@ -75,6 +75,11 @@
       }
     },
     computed: {
+      ...mapGetters([
+          'getQueryParamsByTag',
+          'getPathVarByTag',
+          'getTag',
+      ]),
       // config() {
       //   return {
       //     headers: {'Authorization': 'Bearer ' + this.jwt}
@@ -82,6 +87,9 @@
       // },
       idPathVar() {
         return this.$store.getters.getPathVarByTag(this.localState)
+      },
+      queryParams() {
+        return this.$store.getters.getQueryParamsByTag(this.localState)
       },
       queryString() {
         return this.$store.getters.getQueryStringByTag(this.localState)
@@ -95,6 +103,9 @@
         return this.idPathVar ?
             this.requestUrl.replace(/{id}/, this.idPathVar) :
             this.requestUrl
+      },
+      tag() {
+        return this.getTag(this.localState)
       },
       currentUrl() {
         return this.isShowRequest ? this.showRequestUrl : this.requestUrl
@@ -111,33 +122,16 @@
       localState() {
         return {
           entry: this.entry,
-          idPathVar: '',
-          queryParams: {
-            include: [],
-            'page[number]': '',
-            'page[size]': '',
-            limit: [],
-            sort: [],
-            sort_on: [],
-            filter: []
+          queryParams: {}
           }
         }
-      }
     },
     methods: {
       makeIndexRequest() {
-        if (!this.userSelected) {
-          this.pathVarAlert = true
-        }
         axios.get(this.currentUrl, this.config).then(response => this.response = response.data).
             catch(error => this.response = error.response.data ? error.response.data : error);
       },
       makeShowRequest() {
-        if (!this.idPathVar) {
-          this.pathVarAlert = true
-        } else {
-          this.pathVarAlert = false
-        }
         axios.get(this.currentUrl, this.config).
             then(response => this.response = response.data).
             catch(error => this.response = error.response.data ? error.response.data : error);
